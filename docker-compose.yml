@@ -1,0 +1,45 @@
+# Bu dosya autoeq-service için bir örnek compose tanımı.
+# Senin mevcut compose dosyana entegre ederken 'services:' bloğunun altına
+# 'autoeq' service'ini ekleyip, spring-boot service'ine AUTOEQ_URL env
+# değişkenini eklersin.
+
+version: "3.9"
+
+services:
+  autoeq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: autoeq-service:latest
+    container_name: autoeq-service
+    restart: unless-stopped
+    # expose: container içi network'te 8000 erişilebilir
+    # ports YOK: host'tan erişim yok, dış dünyaya kapalı
+    ports: 
+      - "8000:8000"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ÖRNEK — senin mevcut spring-boot servisin böyle bağlanır:
+  #
+  # spring-boot:
+  #   build: ./backend
+  #   environment:
+  #     AUTOEQ_URL: http://autoeq:8000   # 'autoeq' = service ismi = Docker DNS
+  #   depends_on:
+  #     autoeq:
+  #       condition: service_healthy
+  #   networks:
+  #     - backend
+  #   ports:
+  #     - "8080:8080"
+
+networks:
+  backend:
+    driver: bridge
